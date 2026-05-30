@@ -32,6 +32,9 @@ Postgres (with pgvector) on `localhost:5433`, Redis on `localhost:6379`.
 ```bash
 cp .env.example .env
 # Edit .env when adding Clerk / OpenAI keys (later milestones)
+
+# Next.js reads env from frontend/ — link repo root .env (required for Clerk)
+ln -sf ../.env frontend/.env.local
 ```
 
 ### 3. Backend
