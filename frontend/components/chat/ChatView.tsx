@@ -6,6 +6,7 @@ import { streamChat } from "@/lib/api/chat";
 import { fetchConversation } from "@/lib/api/conversations";
 import { useApiAuth } from "@/lib/api/use-api-auth";
 import { SUGGESTED_PROMPTS, type ChatMessage } from "@/lib/types/chat";
+import { AgentStepIndicator } from "./AgentStepIndicator";
 import { ChatInput } from "./ChatInput";
 import { ChatThread } from "./ChatThread";
 import { EmptyState } from "./EmptyState";
@@ -27,6 +28,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
   const [isLoading, setIsLoading] = useState(Boolean(conversationId && initialMessages.length === 0));
   const [loadError, setLoadError] = useState<string | null>(null);
   const [streamingId, setStreamingId] = useState<string | null>(null);
+  const [agentStep, setAgentStep] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -77,6 +79,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setIsGenerating(true);
       setStreamingId(assistantId);
+      setAgentStep(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -99,7 +102,11 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
           token,
           controller.signal,
           {
+            onStep: (_phase, message) => {
+              setAgentStep(message);
+            },
             onToken: (content) => {
+              setAgentStep(null);
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, content: m.content + content } : m,
@@ -147,6 +154,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
         abortRef.current = null;
         setIsGenerating(false);
         setStreamingId(null);
+        setAgentStep(null);
       }
     },
     [conversationId, getApiToken, router],
@@ -164,6 +172,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
     abortRef.current?.abort();
     setIsGenerating(false);
     setStreamingId(null);
+    setAgentStep(null);
   }, []);
 
   const showEmpty = messages.length === 0 && !isLoading && !loadError;
@@ -183,6 +192,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
       ) : (
         <ChatThread messages={messages} streamingMessageId={streamingId} />
       )}
+      <AgentStepIndicator message={agentStep} />
       <ChatInput
         onSend={handleSend}
         onStop={handleStop}

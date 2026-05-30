@@ -20,6 +20,7 @@ dependencies = [
     "pypdf>=5.0.0",
     "docx2txt>=0.8",
     "PyJWT[crypto]>=2.9.0",
+    "langgraph>=0.2.0",
 ]
 
 [project.optional-dependencies]

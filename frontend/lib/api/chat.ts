@@ -9,6 +9,7 @@ export type ChatDonePayload = {
 
 export type ChatStreamCallbacks = {
   onToken: (content: string) => void;
+  onStep?: (phase: string, message: string) => void;
   onDone: (payload: ChatDonePayload) => void;
   onError: (message: string) => void;
 };
@@ -82,6 +83,8 @@ export async function streamChat(
         const data = JSON.parse(dataLine) as Record<string, unknown>;
         if (eventType === "token" && typeof data.content === "string") {
           callbacks.onToken(data.content);
+        } else if (eventType === "step" && typeof data.message === "string") {
+          callbacks.onStep?.(String(data.phase ?? ""), data.message);
         } else if (eventType === "done") {
           callbacks.onDone(data as unknown as ChatDonePayload);
         } else if (eventType === "error") {
