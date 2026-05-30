@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import type { ChatMessage, ConversationPreview } from "@/lib/types/chat";
+import type { ChatMessage, ConversationPreview, StructuredOutput } from "@/lib/types/chat";
 
 type ConversationSummaryDto = {
   id: string;
@@ -18,6 +18,7 @@ type MessageDto = {
   role: "user" | "assistant";
   content: string;
   sources?: { document: string; excerpt: string }[] | null;
+  structured_output?: StructuredOutput | null;
   created_at: string;
 };
 
@@ -43,6 +44,7 @@ function toMessage(dto: MessageDto): ChatMessage {
     role: dto.role,
     content: dto.content,
     sources: dto.sources ?? undefined,
+    structured: dto.structured_output ?? undefined,
   };
 }
 

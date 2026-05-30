@@ -121,6 +121,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
                         ...m,
                         id: payload.message_id,
                         sources: payload.sources,
+                        structured: payload.structured,
                       }
                     : m,
                 ),

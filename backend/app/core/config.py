@@ -65,6 +65,26 @@ class Settings(BaseSettings):
     rag_top_k: int = 5
     chat_history_turns: int = 10
 
+    # Guardrails & memory (M5+)
+    structured_output_max_retries: int = 3
+    session_memory_ttl_seconds: int = 86400
+
+    # Observability (M6+)
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str = Field(
+        default="https://cloud.langfuse.com",
+        validation_alias=AliasChoices("LANGFUSE_HOST", "LANGFUSE_BASE_URL"),
+    )
+
+    # Deployment (M6+)
+    cors_origins: str = "http://localhost:3000"
+    eval_dataset_path: Path = _REPO_ROOT / "eval" / "dataset.json"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
     @property
     def llm_api_key(self) -> str | None:
         return self.dashscope_api_key or self.openai_api_key

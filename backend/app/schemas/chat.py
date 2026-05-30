@@ -15,3 +15,4 @@ class ChatDoneEvent(BaseModel):
     conversation_id: str
     message_id: str
     sources: list[SourceCitation]
+    structured: dict | None = None

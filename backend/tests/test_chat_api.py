@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.schemas.chat import SourceCitation
+from app.schemas.structured import StructuredAnswerResponse
 
 client = TestClient(app)
 
@@ -12,9 +14,10 @@ def test_chat_requires_message() -> None:
     assert response.status_code == 422
 
 
+@patch("app.services.chat_service.generate_structured_answer")
 @patch("app.services.chat_service.get_openai_client")
 @patch("app.services.chat_service.run_agent_pipeline")
-def test_chat_stream_mocked(mock_pipeline, mock_client_fn) -> None:
+def test_chat_stream_mocked(mock_pipeline, mock_client_fn, mock_structured) -> None:
     mock_pipeline.return_value = (
         {
             "answer_messages": [
@@ -24,21 +27,15 @@ def test_chat_stream_mocked(mock_pipeline, mock_client_fn) -> None:
             "retrieved_chunks": [],
             "steps": [],
         },
-        [
-            {"phase": "planner", "message": "Planning approach…"},
-            {"phase": "researcher", "message": "Searching knowledge base…"},
-        ],
+        [{"phase": "planner", "message": "Planning approach…"}],
     )
-
-    mock_chunk = MagicMock()
-    mock_chunk.choices = [MagicMock()]
-    mock_chunk.choices[0].delta.content = "Hello"
-
-    mock_stream = iter([mock_chunk, MagicMock(choices=[])])
-
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = mock_stream
-    mock_client_fn.return_value = mock_client
+    mock_structured.return_value = StructuredAnswerResponse(
+        summary="Hello structured world",
+        key_points=["Point one"],
+        sources=[SourceCitation(document="compound-interest.txt", excerpt="Growth on growth")],
+        confidence="high",
+    )
+    mock_client_fn.return_value = MagicMock()
 
     response = client.post(
         "/api/v1/chat",
@@ -46,7 +43,8 @@ def test_chat_stream_mocked(mock_pipeline, mock_client_fn) -> None:
     )
 
     assert response.status_code == 200
-    assert "text/event-stream" in response.headers.get("content-type", "")
     body = response.text
     assert "event: step" in body
-    assert "event: token" in body or "event: done" in body or "event: error" in body
+    assert "event: token" in body
+    assert "Hello structured" in body
+    assert "event: done" in body

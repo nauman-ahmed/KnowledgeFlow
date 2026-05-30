@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { groupConversationsByDate, type ConversationPreview } from "@/lib/types/chat";
 import { cn } from "@/lib/utils";
+import { SearchPanel } from "./SearchPanel";
 
 type SidebarProps = {
   conversations: ConversationPreview[];
@@ -29,6 +30,8 @@ export function Sidebar({ conversations, onNavigate }: SidebarProps) {
           New chat
         </Link>
       </div>
+
+      <SearchPanel onNavigate={onNavigate} />
 
       <nav className="flex-1 overflow-y-auto px-2 pb-2">
         {groups.length === 0 ? (

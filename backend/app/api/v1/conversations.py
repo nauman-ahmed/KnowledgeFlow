@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
+from app.memory.session import clear_session_history
 from app.models import Conversation
 from app.schemas.chat import SourceCitation
 from app.schemas.conversations import (
@@ -12,6 +13,7 @@ from app.schemas.conversations import (
     ConversationSummary,
     MessageOut,
 )
+from app.schemas.structured import StructuredAnswerResponse
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -20,11 +22,15 @@ def _message_out(msg) -> MessageOut:
     sources = None
     if msg.sources:
         sources = [SourceCitation(**s) for s in msg.sources]
+    structured = None
+    if msg.structured_output:
+        structured = StructuredAnswerResponse(**msg.structured_output)
     return MessageOut(
         id=msg.id,
         role=msg.role,
         content=msg.content,
         sources=sources,
+        structured_output=structured,
         created_at=msg.created_at,
     )
 
@@ -82,3 +88,4 @@ def delete_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
     db.delete(conversation)
     db.commit()
+    clear_session_history(conversation_id)

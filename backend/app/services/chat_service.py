@@ -1,9 +1,8 @@
 import json
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
-from openai import OpenAI
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -11,6 +10,10 @@ from app.agents.graph import build_agent_graph
 from app.agents.state import STEP_MESSAGES, AgentState
 from app.agents.tools import chunks_from_dicts
 from app.core.llm import get_openai_client
+from app.core.observability import get_tracer
+from app.guardrails.input import GuardrailError, validate_user_message
+from app.guardrails.output import generate_structured_answer, stream_summary_text
+from app.memory.session import append_session_turn, get_session_history, set_session_history
 from app.models import AgentRun, Conversation, Message
 from app.rag.prompts import chunks_to_citations
 from app.schemas.chat import SourceCitation
@@ -45,6 +48,10 @@ def get_or_create_conversation(
 
 
 def load_history_messages(db: Session, conversation_id: str) -> list[dict[str, str]]:
+    cached = get_session_history(conversation_id)
+    if cached:
+        return cached
+
     from app.core.config import get_settings
 
     settings = get_settings()
@@ -56,24 +63,10 @@ def load_history_messages(db: Session, conversation_id: str) -> list[dict[str, s
         .limit(limit)
     )
     rows = list(reversed(db.scalars(stmt).all()))
-    return [{"role": msg.role, "content": msg.content} for msg in rows]
-
-
-def stream_chat_completion(client: OpenAI, messages: list[dict]) -> Iterator[str]:
-    from app.core.config import get_settings
-
-    settings = get_settings()
-    stream = client.chat.completions.create(
-        model=settings.llm_chat_model,
-        messages=messages,
-        stream=True,
-    )
-    for chunk in stream:
-        if not chunk.choices:
-            continue
-        delta = chunk.choices[0].delta
-        if delta.content:
-            yield delta.content
+    messages = [{"role": msg.role, "content": msg.content} for msg in rows]
+    if messages:
+        set_session_history(conversation_id, messages)
+    return messages
 
 
 def format_sse(event: str, data: dict) -> str:
@@ -101,7 +94,6 @@ def run_agent_pipeline(
     query: str,
     history: list[dict[str, str]],
 ) -> tuple[AgentState, list[dict[str, Any]]]:
-    """Run LangGraph agent; return final state and step events for SSE."""
     graph = build_agent_graph()
     initial = _initial_agent_state(query, history)
     final_state: dict[str, Any] = dict(initial)
@@ -131,6 +123,12 @@ async def chat_stream(
     conversation_id: str | None,
 ) -> AsyncIterator[str]:
     try:
+        message = validate_user_message(message)
+    except GuardrailError as exc:
+        yield format_sse("error", {"detail": str(exc)})
+        return
+
+    try:
         conversation = get_or_create_conversation(db, user_id, conversation_id, message)
     except ValueError:
         yield format_sse("error", {"detail": "Conversation not found"})
@@ -149,55 +147,114 @@ async def chat_stream(
     db.add(agent_run)
     db.flush()
 
+    tracer = get_tracer()
+
     try:
         history = load_history_messages(db, conversation.id)
-        final_state, step_events = run_agent_pipeline(db, message, history)
 
-        for step in step_events:
-            yield format_sse("step", step)
+        with tracer.trace(
+            "chat",
+            user_id=user_id,
+            session_id=conversation.id,
+            input={"message": message},
+            metadata={"conversation_id": conversation.id},
+        ) as trace:
+            final_state, step_events = run_agent_pipeline(db, message, history)
 
-        answer_messages = final_state.get("answer_messages") or []
-        client = get_openai_client()
-        full_content: list[str] = []
+            for step in step_events:
+                yield format_sse("step", step)
+                if hasattr(trace, "span"):
+                    span = trace.span(
+                        name=step.get("phase", "step"),
+                        metadata={"message": step.get("message")},
+                    )
+                    span.end()
 
-        for token in stream_chat_completion(client, answer_messages):
-            full_content.append(token)
-            yield format_sse("token", {"content": token})
+            yield format_sse("step", {"phase": "guardrails", "message": "Validating response…"})
 
-        assistant_text = "".join(full_content)
-        chunks = chunks_from_dicts(final_state.get("retrieved_chunks", []))
-        citations = chunks_to_citations(chunks)
-        sources = [SourceCitation(**c) for c in citations]
+            answer_messages = final_state.get("answer_messages") or []
+            client = get_openai_client()
+            chunks = chunks_from_dicts(final_state.get("retrieved_chunks", []))
+            citations = chunks_to_citations(chunks)
+            fallback_sources = [SourceCitation(**c) for c in citations]
 
-        assistant_msg = Message(
-            conversation_id=conversation.id,
-            role="assistant",
-            content=assistant_text,
-            sources=[s.model_dump() for s in sources],
-        )
-        db.add(assistant_msg)
-        conversation.updated_at = datetime.now(UTC)
+            if hasattr(trace, "span"):
+                retrieval_span = trace.span(
+                    name="retrieval",
+                    as_type="retriever",
+                    metadata={
+                        "chunks_retrieved": len(chunks),
+                        "documents": list({c.document for c in fallback_sources}),
+                        "scores": [
+                            c.get("score") for c in final_state.get("retrieved_chunks", [])
+                        ],
+                    },
+                )
+                retrieval_span.end()
 
-        agent_run.message_id = assistant_msg.id
-        agent_run.status = "completed"
-        agent_run.workflow_trace = {
-            "plan": final_state.get("plan"),
-            "steps": final_state.get("steps", []),
-            "search_queries": final_state.get("search_queries", []),
-            "chunks_retrieved": len(final_state.get("retrieved_chunks", [])),
-            "documents_listed": len(final_state.get("document_list", [])),
-        }
-        db.commit()
-        db.refresh(assistant_msg)
+            structured = generate_structured_answer(
+                client,
+                answer_messages,
+                fallback_sources=fallback_sources,
+            )
 
-        yield format_sse(
-            "done",
-            {
-                "conversation_id": conversation.id,
-                "message_id": assistant_msg.id,
-                "sources": [s.model_dump() for s in sources],
-            },
-        )
+            for token in stream_summary_text(structured.summary):
+                yield format_sse("token", {"content": token})
+
+            sources = structured.sources or fallback_sources
+            structured_payload = structured.model_dump()
+
+            assistant_msg = Message(
+                conversation_id=conversation.id,
+                role="assistant",
+                content=structured.summary,
+                sources=[s.model_dump() for s in sources],
+                structured_output=structured_payload,
+            )
+            db.add(assistant_msg)
+            conversation.updated_at = datetime.now(UTC)
+
+            agent_run.message_id = assistant_msg.id
+            agent_run.status = "completed"
+            agent_run.workflow_trace = {
+                "plan": final_state.get("plan"),
+                "steps": final_state.get("steps", []),
+                "search_queries": final_state.get("search_queries", []),
+                "chunks_retrieved": len(final_state.get("retrieved_chunks", [])),
+                "documents_listed": len(final_state.get("document_list", [])),
+                "confidence": structured.confidence,
+            }
+            db.commit()
+            db.refresh(assistant_msg)
+
+            if hasattr(trace, "update"):
+                trace.update(
+                    output={
+                        "summary": structured.summary,
+                        "confidence": structured.confidence,
+                        "sources": [s.model_dump() for s in sources],
+                    }
+                )
+
+            append_session_turn(
+                conversation.id,
+                message,
+                structured.summary,
+                existing=history,
+            )
+
+            yield format_sse(
+                "done",
+                {
+                    "conversation_id": conversation.id,
+                    "message_id": assistant_msg.id,
+                    "sources": [s.model_dump() for s in sources],
+                    "structured": structured_payload,
+                },
+            )
+    except GuardrailError as exc:
+        db.rollback()
+        yield format_sse("error", {"detail": str(exc)})
     except Exception as exc:
         db.rollback()
         try:

@@ -1,16 +1,33 @@
 import { Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { SourceCitation } from "@/lib/types/chat";
+import type { SourceCitation, StructuredOutput } from "@/lib/types/chat";
+import { cn } from "@/lib/utils";
 import { CitationList } from "./CitationChip";
 
 type AssistantMessageProps = {
   content: string;
   isStreaming?: boolean;
   sources?: SourceCitation[];
+  structured?: StructuredOutput;
 };
 
-export function AssistantMessage({ content, isStreaming, sources }: AssistantMessageProps) {
+const CONFIDENCE_STYLES: Record<string, string> = {
+  high: "bg-emerald-900/40 text-emerald-300 border-emerald-800",
+  medium: "bg-amber-900/40 text-amber-300 border-amber-800",
+  low: "bg-neutral-800 text-neutral-400 border-neutral-700",
+};
+
+export function AssistantMessage({
+  content,
+  isStreaming,
+  sources,
+  structured,
+}: AssistantMessageProps) {
+  const displaySources = sources ?? structured?.sources;
+  const confidence = structured?.confidence;
+  const keyPoints = structured?.key_points ?? [];
+
   return (
     <div className="flex gap-3">
       <div
@@ -20,14 +37,33 @@ export function AssistantMessage({ content, isStreaming, sources }: AssistantMes
         <Bot className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
+        {!isStreaming && confidence && (
+          <div className="mb-2">
+            <span
+              className={cn(
+                "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
+                CONFIDENCE_STYLES[confidence] ?? CONFIDENCE_STYLES.low,
+              )}
+            >
+              {confidence} confidence
+            </span>
+          </div>
+        )}
         <div className="prose prose-invert prose-p:my-2 prose-headings:my-3 max-w-none text-[15px] leading-relaxed">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           {isStreaming && (
             <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-neutral-400 align-middle" />
           )}
         </div>
-        {!isStreaming && sources && sources.length > 0 && (
-          <CitationList sources={sources} />
+        {!isStreaming && keyPoints.length > 0 && (
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-neutral-300">
+            {keyPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        )}
+        {!isStreaming && displaySources && displaySources.length > 0 && (
+          <CitationList sources={displaySources} />
         )}
       </div>
     </div>

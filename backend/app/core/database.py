@@ -43,6 +43,15 @@ def init_db() -> None:
         conn.execute(
             text(
                 """
+                ALTER TABLE messages
+                ADD COLUMN IF NOT EXISTS structured_output JSONB
+                """
+            )
+        )
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
                 CREATE INDEX IF NOT EXISTS document_chunks_embedding_hnsw_idx
                 ON document_chunks
                 USING hnsw (embedding vector_cosine_ops)

@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.chat import SourceCitation
+from app.schemas.structured import StructuredAnswerResponse
 
 
 class MessageOut(BaseModel):
@@ -12,6 +13,7 @@ class MessageOut(BaseModel):
     role: str
     content: str
     sources: list[SourceCitation] | None = None
+    structured_output: StructuredAnswerResponse | None = None
     created_at: datetime
 
 

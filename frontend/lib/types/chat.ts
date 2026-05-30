@@ -3,11 +3,19 @@ export type SourceCitation = {
   excerpt: string;
 };
 
+export type StructuredOutput = {
+  summary: string;
+  key_points: string[];
+  sources: SourceCitation[];
+  confidence: "high" | "medium" | "low";
+};
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   sources?: SourceCitation[];
+  structured?: StructuredOutput;
 };
 
 export type ConversationPreview = {

@@ -1,0 +1,54 @@
+{
+  "version": "1",
+  "description": "Golden Q&A pairs for KnowledgeFlow RAG evaluation",
+  "cases": [
+    {
+      "id": "compound-interest-1",
+      "question": "What is compound interest and how does it differ from simple interest?",
+      "expected_documents": ["compound-interest.txt"],
+      "reference_answer": "Compound interest grows on the principal plus interest already earned, while simple interest only grows on the original principal."
+    },
+    {
+      "id": "compound-interest-2",
+      "question": "What is the Rule of 72?",
+      "expected_documents": ["compound-interest.txt"],
+      "reference_answer": "The Rule of 72 estimates doubling time by dividing 72 by the annual interest rate in percent."
+    },
+    {
+      "id": "investing-1",
+      "question": "What is diversification in investing?",
+      "expected_documents": ["intro-to-investing.md"],
+      "reference_answer": "Diversification means spreading money across assets to reduce risk from any single failure."
+    },
+    {
+      "id": "study-habits-1",
+      "question": "Why is spaced repetition better than cramming?",
+      "expected_documents": ["study-habits.md"],
+      "reference_answer": "Spaced repetition reviews material at increasing intervals to move facts into long-term memory, unlike cramming."
+    },
+    {
+      "id": "study-habits-2",
+      "question": "What is active recall as a study technique?",
+      "expected_documents": ["study-habits.md"],
+      "reference_answer": "Active recall means closing the book and explaining the concept aloud or on paper to strengthen memory."
+    },
+    {
+      "id": "music-1",
+      "question": "What pattern defines a major scale?",
+      "expected_documents": ["music-theory-basics.txt"],
+      "reference_answer": "A major scale follows whole, whole, half, whole, whole, whole, half (W-W-H-W-W-W-H)."
+    },
+    {
+      "id": "music-2",
+      "question": "What notes make up a major triad?",
+      "expected_documents": ["music-theory-basics.txt"],
+      "reference_answer": "A major triad contains the 1st, 3rd, and 5th degrees of a major scale (root, major third, perfect fifth)."
+    },
+    {
+      "id": "meta-1",
+      "question": "How do I add documents to the KnowledgeFlow library?",
+      "expected_documents": ["knowledgeflow-readme.md"],
+      "reference_answer": "Drop PDF, DOCX, TXT, or Markdown files into content/ and run python -m app.ingest from backend."
+    }
+  ]
+}
