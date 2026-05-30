@@ -3,11 +3,12 @@
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
-import type { ConversationPreview } from "@/lib/mock-data";
+import type { ConversationPreview } from "@/lib/types/chat";
 import { cn } from "@/lib/utils";
 
 type MobileDrawerProps = {
   conversations: ConversationPreview[];
+  onRefresh?: () => void;
 };
 
 export function MobileDrawer({ conversations }: MobileDrawerProps) {
