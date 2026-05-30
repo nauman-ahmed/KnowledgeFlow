@@ -1,0 +1,14 @@
+Compound Interest (Plain Language)
+
+Simple interest grows only on the original amount (principal).
+
+Compound interest grows on the principal plus interest already earned. Each period, you earn interest on a larger base.
+
+Example: $1,000 at 5% annual compound interest for 3 years:
+- Year 1: $1,050
+- Year 2: $1,102.50
+- Year 3: $1,157.63
+
+The Rule of 72 estimates doubling time: divide 72 by the annual rate (%). At 6%, money roughly doubles in 12 years.
+
+Start early; time in the market matters as much as the rate of return.

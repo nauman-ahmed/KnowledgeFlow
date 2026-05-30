@@ -1,0 +1,13 @@
+Music Theory Basics
+
+A scale is a sequence of notes ordered by pitch. The major scale follows the pattern:
+whole, whole, half, whole, whole, whole, half (W-W-H-W-W-W-H).
+
+A chord is three or more notes played together. A major triad contains the 1st, 3rd, and 5th
+degrees of a major scale (root, major third, perfect fifth).
+
+Rhythm divides time into beats. Time signatures like 4/4 mean four quarter-note beats per bar.
+Tempo is measured in BPM (beats per minute).
+
+Harmony describes how chords relate. Common progressions in pop music include I–V–vi–IV
+(for example C–G–Am–F in the key of C major).
