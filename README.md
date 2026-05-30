@@ -61,11 +61,20 @@ App: http://localhost:3000 — health: http://localhost:3000/api/health
 
 ## Content library
 
-Add files to [`content/`](./content/). Five sample documents are included for future ingest testing. Ingest CLI arrives in **M2**:
+Add files to [`content/`](./content/). Five sample documents are included.
 
 ```bash
-cd backend && python -m app.ingest
+cd backend && source .venv/bin/activate
+pip install -e ".[dev]"
+
+# Ingest all supported files (TXT, MD, PDF, DOCX)
+python -m app.ingest
+
+# Skip unchanged files (content hash)
+python -m app.ingest --changed-only
 ```
+
+List ingested documents: http://localhost:8000/api/v1/documents
 
 ## Project status
 
@@ -73,7 +82,8 @@ cd backend && python -m app.ingest
 |-----------|--------|
 | M0 Foundation | Done |
 | M1 Auth + ChatGPT UI | **In progress** |
-| M2 Ingest pipeline | Planned |
+| M2 Ingest pipeline | Done |
+| M3 RAG chat | **Next** |
 
 - **Handbook (start → finish):** [`doc/PROJECT_GUIDE.md`](./doc/PROJECT_GUIDE.md)  
 - **Live checklist:** [`doc/PROGRESS.md`](./doc/PROGRESS.md)

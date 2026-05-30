@@ -13,6 +13,12 @@ dependencies = [
     "redis>=5.2.0",
     "httpx>=0.28.0",
     "openai>=1.55.0",
+    "pgvector>=0.3.6",
+    "langchain-core>=0.3.0",
+    "langchain-community>=0.3.0",
+    "langchain-text-splitters>=0.3.0",
+    "pypdf>=5.0.0",
+    "docx2txt>=0.8",
 ]
 
 [project.optional-dependencies]

@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     llm_embedding_model: str = "text-embedding-v4"
     llm_embedding_dimensions: int = 1536
 
+    content_dir: Path = _REPO_ROOT / "content"
+    ingest_chunk_size: int = 2000
+    ingest_chunk_overlap: int = 200
+    embed_batch_size: int = 16
+
     @property
     def llm_api_key(self) -> str | None:
         return self.dashscope_api_key or self.openai_api_key

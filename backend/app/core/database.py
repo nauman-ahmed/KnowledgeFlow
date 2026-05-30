@@ -5,6 +5,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
+from app.models import Base
 
 _engine: Engine | None = None
 _session_factory: sessionmaker[Session] | None = None
@@ -30,6 +31,24 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def init_db() -> None:
+    """Create tables and pgvector index (idempotent)."""
+    engine = get_engine()
+    with engine.begin() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+    Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                CREATE INDEX IF NOT EXISTS document_chunks_embedding_hnsw_idx
+                ON document_chunks
+                USING hnsw (embedding vector_cosine_ops)
+                """
+            )
+        )
 
 
 def check_database() -> bool:
