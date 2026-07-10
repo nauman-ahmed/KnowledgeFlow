@@ -18,7 +18,7 @@ class GraphRepository:
         RETURN d.id AS id, d.title AS title, d.filename AS filename
         """
         record = self._run_single(query, id=doc_id, title=title, filename=filename)
-        return dict(record) if record else {}
+        return record.data() if record else {}
 
     def get_document(self, doc_id: str) -> dict[str, Any] | None:
         query = """
@@ -26,7 +26,7 @@ class GraphRepository:
         RETURN d.id AS id, d.title AS title, d.filename AS filename
         """
         record = self._run_single(query, id=doc_id)
-        return dict(record) if record else None
+        return record.data() if record else None
 
     def delete_document(self, doc_id: str) -> bool:
         query = """

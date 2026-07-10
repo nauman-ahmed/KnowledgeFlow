@@ -11,9 +11,23 @@ def main() -> int:
         action="store_true",
         help="Skip files whose content hash already exists with status=ready",
     )
+    parser.add_argument(
+        "--skip-graph",
+        action="store_true",
+        help="Ingest vectors only; skip Neo4j graph extraction",
+    )
+    parser.add_argument(
+        "--graph-only",
+        action="store_true",
+        help="Run graph extraction on already-ingested documents (requires Neo4j + LLM key)",
+    )
     args = parser.parse_args()
 
-    results = run_ingest(changed_only=args.changed_only)
+    results = run_ingest(
+        changed_only=args.changed_only,
+        skip_graph=args.skip_graph,
+        graph_only=args.graph_only,
+    )
     ingested = skipped = failed = 0
     for item in results:
         if item.action == "ingested":

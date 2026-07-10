@@ -1,0 +1,111 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix kf: <http://knowledgeflow.io/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+kf:DocumentShape a sh:NodeShape ;
+    sh:targetClass kf:Document ;
+    sh:property [
+        sh:path kf:title ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path kf:filename ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+    ] .
+
+kf:ChunkShape a sh:NodeShape ;
+    sh:targetClass kf:Chunk ;
+    sh:property [
+        sh:path kf:text ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path kf:partOf ;
+        sh:class kf:Document ;
+        sh:minCount 1 ;
+    ] .
+
+kf:AuthorShape a sh:NodeShape ;
+    sh:targetClass kf:Author ;
+    sh:property [
+        sh:path kf:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:minLength 1 ;
+    ] .
+
+kf:OrganizationShape a sh:NodeShape ;
+    sh:targetClass kf:Organization ;
+    sh:property [
+        sh:path kf:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:minLength 1 ;
+    ] .
+
+kf:ConceptShape a sh:NodeShape ;
+    sh:targetClass kf:Concept ;
+    sh:property [
+        sh:path kf:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:minLength 1 ;
+    ] .
+
+kf:DatasetShape a sh:NodeShape ;
+    sh:targetClass kf:Dataset ;
+    sh:property [
+        sh:path kf:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:minLength 1 ;
+    ] .
+
+kf:ExperimentShape a sh:NodeShape ;
+    sh:targetClass kf:Experiment ;
+    sh:property [
+        sh:path kf:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:minLength 1 ;
+    ] .
+
+kf:CitationShape a sh:NodeShape ;
+    sh:targetClass kf:Citation ;
+    sh:property [
+        sh:path kf:text ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:minLength 1 ;
+    ] .
+
+kf:DocumentMentionsShape a sh:NodeShape ;
+    sh:targetClass kf:Document ;
+    sh:property [
+        sh:path kf:mentions ;
+        sh:class kf:Concept ;
+    ] .
+
+kf:DocumentCitesShape a sh:NodeShape ;
+    sh:targetClass kf:Document ;
+    sh:property [
+        sh:path kf:cites ;
+        sh:class kf:Citation ;
+    ] .
+
+kf:DocumentAuthoredByShape a sh:NodeShape ;
+    sh:targetClass kf:Document ;
+    sh:property [
+        sh:path kf:authoredBy ;
+        sh:class kf:Author ;
+    ] .
+
+kf:ConceptRelatedToShape a sh:NodeShape ;
+    sh:targetClass kf:Concept ;
+    sh:property [
+        sh:path kf:relatedTo ;
+        sh:class kf:Concept ;
+    ] .

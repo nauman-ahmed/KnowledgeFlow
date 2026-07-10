@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.llm import get_openai_client
 from app.models import Document
-from app.rag.retriever import RetrievedChunk, retrieve_chunks
+from app.rag.hybrid_retriever import HybridRetrievalResult, retrieve_hybrid
+from app.rag.retriever import RetrievedChunk
 
 T = TypeVar("T")
 
@@ -38,8 +39,20 @@ def with_retry(fn: Callable[[], T], max_attempts: int = 3, base_delay: float = 1
 
 
 def search_documents(db: Session, query: str, top_k: int | None = None) -> list[dict]:
-    chunks = retrieve_chunks(db, query, top_k=top_k)
-    return [chunk_to_dict(c) for c in chunks]
+    result = retrieve_hybrid(db, query, top_k=top_k)
+    return [chunk_to_dict(c) for c in result.chunks]
+
+
+def search_documents_hybrid(
+    db: Session, query: str, top_k: int | None = None
+) -> HybridRetrievalResult:
+    return retrieve_hybrid(db, query, top_k=top_k)
+
+
+def query_graph_cypher(nl_query: str) -> dict:
+    from app.graph.cypher_executor import query_graph_cypher as run_cypher_query
+
+    return run_cypher_query(nl_query)
 
 
 def list_documents(db: Session) -> list[dict[str, str]]:

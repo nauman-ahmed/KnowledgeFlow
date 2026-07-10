@@ -17,6 +17,7 @@ from app.memory.session import append_session_turn, get_session_history, set_ses
 from app.models import AgentRun, Conversation, Message
 from app.rag.prompts import chunks_to_citations
 from app.schemas.chat import SourceCitation
+from app.services.graph_context import build_graph_context
 
 
 def truncate_title(text: str, max_len: int = 60) -> str:
@@ -74,6 +75,8 @@ def format_sse(event: str, data: dict) -> str:
 
 
 def _initial_agent_state(query: str, history: list[dict[str, str]]) -> AgentState:
+    from app.agents.graph import _default_retrieval_mode
+
     return {
         "query": query,
         "history": history,
@@ -82,6 +85,12 @@ def _initial_agent_state(query: str, history: list[dict[str, str]]) -> AgentStat
         "list_library": False,
         "run_summarize": False,
         "retrieved_chunks": [],
+        "graph_paths": [],
+        "retrieval_mode": _default_retrieval_mode(),
+        "graph_query": "",
+        "cypher_query": "",
+        "graph_query_results": [],
+        "cypher_error": None,
         "document_list": [],
         "chunk_summaries": [],
         "answer_messages": [],
@@ -106,12 +115,24 @@ def run_agent_pipeline(
     ):
         for node_name, update in event.items():
             final_state.update(update)
-            step_events.append(
-                {
-                    "phase": node_name,
-                    "message": STEP_MESSAGES.get(node_name, node_name),
-                }
-            )
+            internal_steps = update.get("steps") or []
+            if internal_steps:
+                for step in internal_steps:
+                    phase = str(step.get("phase", node_name))
+                    detail = str(step.get("detail", ""))
+                    step_events.append(
+                        {
+                            "phase": phase,
+                            "message": STEP_MESSAGES.get(phase, detail or phase),
+                        }
+                    )
+            else:
+                step_events.append(
+                    {
+                        "phase": node_name,
+                        "message": STEP_MESSAGES.get(node_name, node_name),
+                    }
+                )
 
     return final_state, step_events  # type: ignore[return-value]
 
@@ -186,6 +207,9 @@ async def chat_stream(
                     metadata={
                         "chunks_retrieved": len(chunks),
                         "documents": list({c.document for c in fallback_sources}),
+                        "retrieval_mode": final_state.get("retrieval_mode"),
+                        "cypher_query": final_state.get("cypher_query"),
+                        "graph_results_count": len(final_state.get("graph_query_results", [])),
                         "scores": [
                             c.get("score") for c in final_state.get("retrieved_chunks", [])
                         ],
@@ -204,6 +228,9 @@ async def chat_stream(
 
             sources = structured.sources or fallback_sources
             structured_payload = structured.model_dump()
+            graph_context = build_graph_context(final_state)
+            if graph_context:
+                structured_payload["graph_context"] = graph_context
 
             assistant_msg = Message(
                 conversation_id=conversation.id,
@@ -221,6 +248,10 @@ async def chat_stream(
                 "plan": final_state.get("plan"),
                 "steps": final_state.get("steps", []),
                 "search_queries": final_state.get("search_queries", []),
+                "retrieval_mode": final_state.get("retrieval_mode"),
+                "graph_query": final_state.get("graph_query"),
+                "cypher_query": final_state.get("cypher_query"),
+                "graph_results_count": len(final_state.get("graph_query_results", [])),
                 "chunks_retrieved": len(final_state.get("retrieved_chunks", [])),
                 "documents_listed": len(final_state.get("document_list", [])),
                 "confidence": structured.confidence,
@@ -251,6 +282,7 @@ async def chat_stream(
                     "message_id": assistant_msg.id,
                     "sources": [s.model_dump() for s in sources],
                     "structured": structured_payload,
+                    "graph_context": graph_context,
                 },
             )
     except GuardrailError as exc:

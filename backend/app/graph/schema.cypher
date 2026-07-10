@@ -5,6 +5,8 @@ CREATE CONSTRAINT concept_uri IF NOT EXISTS FOR (c:Concept) REQUIRE c.uri IS UNI
 CREATE CONSTRAINT author_id IF NOT EXISTS FOR (a:Author) REQUIRE a.id IS UNIQUE;
 CREATE CONSTRAINT organization_id IF NOT EXISTS FOR (o:Organization) REQUIRE o.id IS UNIQUE;
 CREATE CONSTRAINT citation_id IF NOT EXISTS FOR (c:Citation) REQUIRE c.id IS UNIQUE;
+CREATE CONSTRAINT dataset_id IF NOT EXISTS FOR (d:Dataset) REQUIRE d.id IS UNIQUE;
+CREATE CONSTRAINT experiment_id IF NOT EXISTS FOR (e:Experiment) REQUIRE e.id IS UNIQUE;
 
 // Lookup indexes
 CREATE INDEX document_filename IF NOT EXISTS FOR (d:Document) ON (d.filename);

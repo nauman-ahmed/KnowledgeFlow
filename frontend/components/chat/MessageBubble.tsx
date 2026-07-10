@@ -17,6 +17,7 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
       isStreaming={isStreaming}
       sources={message.sources}
       structured={message.structured}
+      graphContext={message.graphContext}
     />
   );
 }

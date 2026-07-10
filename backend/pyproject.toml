@@ -23,6 +23,8 @@ dependencies = [
     "langgraph>=0.2.0",
     "langfuse>=2.0.0",
     "neo4j>=5.0.0",
+    "rdflib>=7.0.0",
+    "pyshacl>=0.26.0",
 ]
 
 [project.optional-dependencies]

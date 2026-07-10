@@ -1,6 +1,6 @@
 {
-  "version": "1",
-  "description": "Golden Q&A pairs for KnowledgeFlow RAG evaluation",
+  "version": "2",
+  "description": "Golden Q&A pairs for KnowledgeFlow vector and GraphRAG evaluation",
   "cases": [
     {
       "id": "compound-interest-1",
@@ -49,6 +49,30 @@
       "question": "How do I add documents to the KnowledgeFlow library?",
       "expected_documents": ["knowledgeflow-readme.md"],
       "reference_answer": "Drop PDF, DOCX, TXT, or Markdown files into content/ and run python -m app.ingest from backend."
+    },
+    {
+      "id": "graph-compound-1",
+      "question": "What concepts relate to compound interest?",
+      "expected_documents": ["compound-interest.txt"],
+      "expected_graph_entities": ["compound interest", "simple interest"],
+      "graph_query": "What concepts relate to compound interest?",
+      "reference_answer": "Compound interest is related to simple interest and grows on both principal and accumulated interest."
+    },
+    {
+      "id": "graph-investing-1",
+      "question": "Which documents discuss diversification?",
+      "expected_documents": ["intro-to-investing.md"],
+      "expected_graph_entities": ["diversification"],
+      "graph_query": "Which documents mention diversification?",
+      "reference_answer": "The intro-to-investing document explains diversification as spreading investments across assets."
+    },
+    {
+      "id": "graph-study-1",
+      "question": "What study techniques are connected to spaced repetition?",
+      "expected_documents": ["study-habits.md"],
+      "expected_graph_entities": ["spaced repetition", "active recall"],
+      "graph_query": "What concepts relate to spaced repetition?",
+      "reference_answer": "Spaced repetition is connected to active recall and long-term memory in the study habits material."
     }
   ]
 }

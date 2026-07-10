@@ -1,15 +1,18 @@
 import { Bot } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { SourceCitation, StructuredOutput } from "@/lib/types/chat";
+import type { GraphContext, SourceCitation, StructuredOutput } from "@/lib/types/chat";
 import { cn } from "@/lib/utils";
 import { CitationList } from "./CitationChip";
+import { GraphDebugPanel } from "./GraphDebugPanel";
+import { RelatedConceptList } from "./RelatedConceptChip";
 
 type AssistantMessageProps = {
   content: string;
   isStreaming?: boolean;
   sources?: SourceCitation[];
   structured?: StructuredOutput;
+  graphContext?: GraphContext | null;
 };
 
 const CONFIDENCE_STYLES: Record<string, string> = {
@@ -23,8 +26,11 @@ export function AssistantMessage({
   isStreaming,
   sources,
   structured,
+  graphContext,
 }: AssistantMessageProps) {
   const displaySources = sources ?? structured?.sources;
+  const displayGraphContext = graphContext ?? structured?.graph_context ?? null;
+  const relatedConcepts = displayGraphContext?.related_concepts ?? [];
   const confidence = structured?.confidence;
   const keyPoints = structured?.key_points ?? [];
 
@@ -65,6 +71,10 @@ export function AssistantMessage({
         {!isStreaming && displaySources && displaySources.length > 0 && (
           <CitationList sources={displaySources} />
         )}
+        {!isStreaming && relatedConcepts.length > 0 && (
+          <RelatedConceptList concepts={relatedConcepts} />
+        )}
+        {!isStreaming && <GraphDebugPanel graphContext={displayGraphContext} />}
       </div>
     </div>
   );

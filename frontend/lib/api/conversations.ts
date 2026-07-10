@@ -45,6 +45,7 @@ function toMessage(dto: MessageDto): ChatMessage {
     content: dto.content,
     sources: dto.sources ?? undefined,
     structured: dto.structured_output ?? undefined,
+    graphContext: dto.structured_output?.graph_context ?? null,
   };
 }
 

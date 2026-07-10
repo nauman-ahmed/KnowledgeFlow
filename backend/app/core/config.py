@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "knowledgeflow"
 
+    # RDF/OWL ontology (M8+)
+    ontology_path: Path = _REPO_ROOT / "ontology" / "knowledgeflow.ttl"
+    shacl_shapes_path: Path = _REPO_ROOT / "ontology" / "shapes.ttl"
+    graph_shacl_mode: str = "strict"  # strict | warn
+
     # Clerk (M1+)
     clerk_secret_key: str | None = None
     clerk_publishable_key: str | None = Field(
@@ -70,6 +75,13 @@ class Settings(BaseSettings):
     # RAG / chat (M3+)
     rag_top_k: int = 5
     chat_history_turns: int = 10
+
+    # Hybrid retrieval (M11+)
+    hybrid_retrieval_enabled: bool = True
+    hybrid_use_rrf: bool = True
+    graph_retrieval_hops: int = 2
+    graph_retrieval_limit: int = 10
+    cypher_query_limit: int = 25
 
     # Guardrails & memory (M5+)
     structured_output_max_retries: int = 3

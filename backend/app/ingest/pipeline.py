@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.database import get_session_factory, init_db
+from app.graph.pipeline import extract_and_persist_document_graph, graph_ingest_enabled
 from app.ingest.chunking import split_documents
 from app.ingest.embedder import embed_texts
 from app.ingest.loaders import guess_mime_type, iter_content_files, load_file
@@ -28,7 +29,13 @@ def title_from_path(path: Path) -> str:
     return path.stem.replace("-", " ").replace("_", " ").strip().title() or path.name
 
 
-def ingest_file(session: Session, path: Path, *, changed_only: bool) -> IngestResult:
+def ingest_file(
+    session: Session,
+    path: Path,
+    *,
+    changed_only: bool,
+    skip_graph: bool = False,
+) -> IngestResult:
     rel = path.name
     content_hash = ""
     try:
@@ -82,8 +89,23 @@ def ingest_file(session: Session, path: Path, *, changed_only: bool) -> IngestRe
 
         doc.chunk_count = len(vectors)
         doc.status = "ready"
+        session.flush()
+
+        detail = f"{len(vectors)} chunks"
+        if skip_graph:
+            doc.graph_status = "pending"
+        elif graph_ingest_enabled():
+            try:
+                graph_detail = extract_and_persist_document_graph(session, doc)
+                detail = f"{detail}, {graph_detail}"
+            except Exception as exc:
+                doc.graph_status = "failed"
+                detail = f"{detail}, graph failed: {exc}"
+        else:
+            doc.graph_status = "skipped"
+
         session.commit()
-        return IngestResult(rel, "ingested", f"{len(vectors)} chunks")
+        return IngestResult(rel, "ingested", detail)
     except Exception as exc:
         session.rollback()
         _mark_failed(session, path, content_hash or None, str(exc))
@@ -122,7 +144,44 @@ def _mark_failed(
         session.rollback()
 
 
-def run_ingest(*, changed_only: bool = False) -> list[IngestResult]:
+def ingest_file_graph_only(
+    session: Session, path: Path, *, changed_only: bool
+) -> IngestResult:
+    rel = path.name
+    doc = session.execute(
+        select(Document).where(Document.filename == path.name)
+    ).scalar_one_or_none()
+    if doc is None:
+        return IngestResult(rel, "failed", "document not found — run full ingest first")
+    if doc.status != "ready":
+        return IngestResult(rel, "failed", f"document status is {doc.status}")
+    if changed_only and doc.graph_status == "extracted":
+        return IngestResult(rel, "skipped", "graph unchanged")
+
+    try:
+        detail = extract_and_persist_document_graph(session, doc)
+        session.commit()
+        return IngestResult(rel, "ingested", detail)
+    except Exception as exc:
+        session.rollback()
+        _mark_graph_failed(session, doc, str(exc))
+        return IngestResult(rel, "failed", str(exc))
+
+
+def _mark_graph_failed(session: Session, doc: Document, message: str) -> None:
+    try:
+        doc.graph_status = "failed"
+        session.commit()
+    except Exception:
+        session.rollback()
+
+
+def run_ingest(
+    *,
+    changed_only: bool = False,
+    skip_graph: bool = False,
+    graph_only: bool = False,
+) -> list[IngestResult]:
     settings = get_settings()
     content_dir = settings.content_dir.resolve()
     init_db()
@@ -136,6 +195,16 @@ def run_ingest(*, changed_only: bool = False) -> list[IngestResult]:
 
     with session_factory() as session:
         for path in files:
-            results.append(ingest_file(session, path, changed_only=changed_only))
+            if graph_only:
+                results.append(ingest_file_graph_only(session, path, changed_only=changed_only))
+            else:
+                results.append(
+                    ingest_file(
+                        session,
+                        path,
+                        changed_only=changed_only,
+                        skip_graph=skip_graph,
+                    )
+                )
 
     return results

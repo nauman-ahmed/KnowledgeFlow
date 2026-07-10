@@ -3,11 +3,21 @@ export type SourceCitation = {
   excerpt: string;
 };
 
+export type GraphContext = {
+  retrieval_mode?: string | null;
+  related_concepts?: string[];
+  graph_paths?: string[];
+  cypher_query?: string | null;
+  cypher_error?: string | null;
+  graph_results_count?: number;
+};
+
 export type StructuredOutput = {
   summary: string;
   key_points: string[];
   sources: SourceCitation[];
   confidence: "high" | "medium" | "low";
+  graph_context?: GraphContext | null;
 };
 
 export type ChatMessage = {
@@ -16,6 +26,7 @@ export type ChatMessage = {
   content: string;
   sources?: SourceCitation[];
   structured?: StructuredOutput;
+  graphContext?: GraphContext | null;
 };
 
 export type ConversationPreview = {

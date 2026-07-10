@@ -1,11 +1,12 @@
 import { getApiUrl } from "./client";
-import type { SourceCitation, StructuredOutput } from "@/lib/types/chat";
+import type { GraphContext, SourceCitation, StructuredOutput } from "@/lib/types/chat";
 
 export type ChatDonePayload = {
   conversation_id: string;
   message_id: string;
   sources: SourceCitation[];
   structured?: StructuredOutput;
+  graph_context?: GraphContext | null;
 };
 
 export type ChatStreamCallbacks = {

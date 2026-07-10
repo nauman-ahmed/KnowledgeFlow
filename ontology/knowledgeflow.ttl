@@ -1,0 +1,117 @@
+@prefix kf: <http://knowledgeflow.io/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+kf:KnowledgeFlowOntology a owl:Ontology ;
+    rdfs:label "KnowledgeFlow Ontology" ;
+    rdfs:comment "Ontology for documents, entities, and relationships in the KnowledgeFlow GraphRAG platform." .
+
+# --- Classes ---
+
+kf:Document a owl:Class ;
+    rdfs:label "Document" ;
+    rdfs:comment "A source document in the knowledge library." .
+
+kf:Chunk a owl:Class ;
+    rdfs:label "Chunk" ;
+    rdfs:comment "A text chunk derived from a document for vector retrieval." .
+
+kf:Author a owl:Class ;
+    rdfs:label "Author" ;
+    rdfs:comment "A person who authored or contributed to a document." .
+
+kf:Organization a owl:Class ;
+    rdfs:label "Organization" ;
+    rdfs:comment "An institution, company, or research group." .
+
+kf:Concept a owl:Class ;
+    rdfs:label "Concept" ;
+    rdfs:comment "A topical concept, term, or subject mentioned in documents." .
+
+kf:Dataset a owl:Class ;
+    rdfs:label "Dataset" ;
+    rdfs:comment "A structured dataset referenced or described in a document." .
+
+kf:Experiment a owl:Class ;
+    rdfs:label "Experiment" ;
+    rdfs:comment "An experiment, study, or empirical procedure described in a document." .
+
+kf:Citation a owl:Class ;
+    rdfs:label "Citation" ;
+    rdfs:comment "A bibliographic reference cited by a document." .
+
+# --- Datatype properties ---
+
+kf:title a owl:DatatypeProperty ;
+    rdfs:label "title" ;
+    rdfs:domain kf:Document ;
+    rdfs:range xsd:string .
+
+kf:filename a owl:DatatypeProperty ;
+    rdfs:label "filename" ;
+    rdfs:domain kf:Document ;
+    rdfs:range xsd:string .
+
+kf:name a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:domain [ a owl:Class ;
+            owl:unionOf ( kf:Author kf:Organization kf:Concept kf:Dataset kf:Experiment )
+        ] ;
+    rdfs:range xsd:string .
+
+kf:text a owl:DatatypeProperty ;
+    rdfs:label "text" ;
+    rdfs:domain [ a owl:Class ;
+            owl:unionOf ( kf:Chunk kf:Citation )
+        ] ;
+    rdfs:range xsd:string .
+
+# --- Object properties ---
+
+kf:authoredBy a owl:ObjectProperty ;
+    rdfs:label "authoredBy" ;
+    rdfs:domain kf:Document ;
+    rdfs:range kf:Author .
+
+kf:affiliatedWith a owl:ObjectProperty ;
+    rdfs:label "affiliatedWith" ;
+    rdfs:domain kf:Author ;
+    rdfs:range kf:Organization .
+
+kf:mentions a owl:ObjectProperty ;
+    rdfs:label "mentions" ;
+    rdfs:domain kf:Document ;
+    rdfs:range kf:Concept .
+
+kf:cites a owl:ObjectProperty ;
+    rdfs:label "cites" ;
+    rdfs:domain kf:Document ;
+    rdfs:range kf:Citation .
+
+kf:relatedTo a owl:ObjectProperty ;
+    rdfs:label "relatedTo" ;
+    rdfs:domain kf:Concept ;
+    rdfs:range kf:Concept ;
+    owl:inverseOf kf:relatedTo .
+
+kf:hasChunk a owl:ObjectProperty ;
+    rdfs:label "hasChunk" ;
+    rdfs:domain kf:Document ;
+    rdfs:range kf:Chunk .
+
+kf:partOf a owl:ObjectProperty ;
+    rdfs:label "partOf" ;
+    rdfs:domain kf:Chunk ;
+    rdfs:range kf:Document ;
+    owl:inverseOf kf:hasChunk .
+
+kf:describes a owl:ObjectProperty ;
+    rdfs:label "describes" ;
+    rdfs:domain kf:Document ;
+    rdfs:range kf:Dataset .
+
+kf:reportsExperiment a owl:ObjectProperty ;
+    rdfs:label "reportsExperiment" ;
+    rdfs:domain kf:Document ;
+    rdfs:range kf:Experiment .

@@ -1,7 +1,7 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, Library } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { groupConversationsByDate, type ConversationPreview } from "@/lib/types/chat";
@@ -20,7 +20,7 @@ export function Sidebar({ conversations, onNavigate }: SidebarProps) {
 
   return (
     <div className="flex h-full w-[260px] flex-col bg-[#212121] text-neutral-200">
-      <div className="p-3">
+      <div className="space-y-2 p-3">
         <Link
           href="/chat"
           onClick={onNavigate}
@@ -28,6 +28,19 @@ export function Sidebar({ conversations, onNavigate }: SidebarProps) {
         >
           <MessageSquarePlus className="h-4 w-4" />
           New chat
+        </Link>
+        <Link
+          href="/documents"
+          onClick={onNavigate}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors",
+            pathname === "/documents"
+              ? "bg-neutral-800 text-neutral-100"
+              : "text-neutral-400 hover:bg-neutral-800/60 hover:text-neutral-200",
+          )}
+        >
+          <Library className="h-4 w-4" />
+          Documents
         </Link>
       </div>
 

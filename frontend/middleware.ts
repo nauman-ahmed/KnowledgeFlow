@@ -6,7 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/health",
 ]);
 
-const isProtectedRoute = createRouteMatcher(["/chat(.*)"]);
+const isProtectedRoute = createRouteMatcher(["/chat(.*)", "/documents(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) {

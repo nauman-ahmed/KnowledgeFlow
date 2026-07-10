@@ -12,6 +12,7 @@ class DocumentSummary(BaseModel):
     mime_type: str
     status: str
     chunk_count: int
+    graph_status: str | None = None
     content_hash: str
     created_at: datetime
     updated_at: datetime

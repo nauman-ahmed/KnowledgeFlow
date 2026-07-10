@@ -29,6 +29,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
   const [loadError, setLoadError] = useState<string | null>(null);
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [agentStep, setAgentStep] = useState<string | null>(null);
+  const [agentPhase, setAgentPhase] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -80,6 +81,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
       setIsGenerating(true);
       setStreamingId(assistantId);
       setAgentStep(null);
+      setAgentPhase(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -102,11 +104,13 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
           token,
           controller.signal,
           {
-            onStep: (_phase, message) => {
+            onStep: (phase, message) => {
+              setAgentPhase(phase);
               setAgentStep(message);
             },
             onToken: (content) => {
               setAgentStep(null);
+      setAgentPhase(null);
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === assistantId ? { ...m, content: m.content + content } : m,
@@ -122,6 +126,8 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
                         id: payload.message_id,
                         sources: payload.sources,
                         structured: payload.structured,
+                        graphContext:
+                          payload.graph_context ?? payload.structured?.graph_context ?? null,
                       }
                     : m,
                 ),
@@ -156,6 +162,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
         setIsGenerating(false);
         setStreamingId(null);
         setAgentStep(null);
+      setAgentPhase(null);
       }
     },
     [conversationId, getApiToken, router],
@@ -193,7 +200,7 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
       ) : (
         <ChatThread messages={messages} streamingMessageId={streamingId} />
       )}
-      <AgentStepIndicator message={agentStep} />
+      <AgentStepIndicator message={agentStep} phase={agentPhase} />
       <ChatInput
         onSend={handleSend}
         onStop={handleStop}

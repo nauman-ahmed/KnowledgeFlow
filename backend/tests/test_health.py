@@ -12,3 +12,5 @@ def test_health_returns_json() -> None:
     assert data["service"] == "knowledgeflow-api"
     assert "status" in data
     assert "checks" in data
+    assert "neo4j" in data["checks"]
+    assert "ontology" in data["checks"]

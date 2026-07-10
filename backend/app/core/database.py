@@ -58,6 +58,23 @@ def init_db() -> None:
                 """
             )
         )
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                """
+                ALTER TABLE documents
+                ADD COLUMN IF NOT EXISTS graph_status VARCHAR(32)
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                ALTER TABLE documents
+                ADD COLUMN IF NOT EXISTS graph_extracted_at TIMESTAMPTZ
+                """
+            )
+        )
 
 
 def check_database() -> bool:
