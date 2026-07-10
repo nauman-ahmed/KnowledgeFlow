@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from app.agents.graph import planner_node, researcher_node
+from app.agents.graph import answer_generator_node, planner_node, researcher_node
 
 
 @patch("app.agents.graph.get_openai_client")
@@ -72,3 +72,28 @@ def test_researcher_node_merges_chunks(mock_list, mock_search) -> None:
     assert len(result["retrieved_chunks"]) == 1
     assert len(result["document_list"]) == 1
     assert result["steps"][0]["phase"] == "researcher"
+
+
+def test_answer_generator_includes_current_query_with_history() -> None:
+    state = {
+        "query": "Hi",
+        "history": [
+            {"role": "user", "content": "Explain compound interest in simple terms"},
+            {"role": "assistant", "content": "Compound interest is earnings on earnings."},
+        ],
+        "plan": "Greet the user",
+        "search_queries": ["greeting"],
+        "list_library": False,
+        "run_summarize": False,
+        "retrieved_chunks": [],
+        "document_list": [],
+        "chunk_summaries": [],
+        "answer_messages": [],
+        "steps": [],
+    }
+
+    result = answer_generator_node(state, config={"configurable": {}})
+
+    messages = result["answer_messages"]
+    assert messages[-1] == {"role": "user", "content": "Hi"}
+    assert messages[-2]["role"] == "assistant"

@@ -129,7 +129,11 @@ def answer_generator_node(state: AgentState, config: RunnableConfig) -> dict:
     context = _build_context(state)
     system_message = f"{SYSTEM_PROMPT}\n\n## Retrieved context\n\n{context}"
     history = state.get("history") or []
-    answer_messages = [{"role": "system", "content": system_message}, *history]
+    answer_messages = [
+        {"role": "system", "content": system_message},
+        *history,
+        {"role": "user", "content": state["query"]},
+    ]
     return {
         "answer_messages": answer_messages,
         "steps": [{"phase": "answer_generator", "detail": "Answer context prepared"}],

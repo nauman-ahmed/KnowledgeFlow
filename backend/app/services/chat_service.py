@@ -134,6 +134,8 @@ async def chat_stream(
         yield format_sse("error", {"detail": "Conversation not found"})
         return
 
+    history = load_history_messages(db, conversation.id)
+
     user_msg = Message(conversation_id=conversation.id, role="user", content=message)
     db.add(user_msg)
     conversation.updated_at = datetime.now(UTC)
@@ -150,7 +152,6 @@ async def chat_stream(
     tracer = get_tracer()
 
     try:
-        history = load_history_messages(db, conversation.id)
 
         with tracer.trace(
             "chat",
