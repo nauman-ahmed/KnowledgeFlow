@@ -3,8 +3,16 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.core.auth import get_current_user_id
+from app.core.database import init_db
 from app.core.observability import _NoOpTrace
 from app.main import app
+
+
+@pytest.fixture(scope="session", autouse=True)
+def database_schema() -> None:
+    """Create tables once. TestClient(app) without a `with` block skips the lifespan
+    that normally calls init_db(), so a fresh database (e.g. in CI) has no tables."""
+    init_db()
 
 
 @pytest.fixture(autouse=True)

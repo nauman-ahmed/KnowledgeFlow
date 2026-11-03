@@ -30,9 +30,10 @@ def test_planner_node_fallback_on_bad_json(mock_client_fn) -> None:
     assert result["steps"][0]["phase"] == "planner"
 
 
+@patch("app.agents.graph.get_openai_client")
 @patch("app.agents.graph.search_documents")
 @patch("app.agents.graph.list_documents")
-def test_researcher_node_merges_chunks(mock_list, mock_search) -> None:
+def test_researcher_node_merges_chunks(mock_list, mock_search, _mock_client) -> None:
     mock_search.return_value = [
         {
             "chunk_id": "c1",
