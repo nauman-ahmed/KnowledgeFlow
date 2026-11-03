@@ -9,6 +9,22 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    # The API tests need Postgres with pgvector, as in docker-compose.yml
+    # (port 5433 matches the default DATABASE_URL in app/core/config.py).
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: knowledgeflow
+          POSTGRES_PASSWORD: knowledgeflow
+          POSTGRES_DB: knowledgeflow
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U knowledgeflow -d knowledgeflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
