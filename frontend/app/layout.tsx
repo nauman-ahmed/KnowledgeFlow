@@ -30,7 +30,12 @@ export default function RootLayout({
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
-        <body className="min-h-full flex flex-col bg-neutral-900 text-neutral-100">
+        {/* Browser extensions (Grammarly, ColorZilla) inject attributes on <body>
+            before React hydrates; this only silences attribute diffs on this tag. */}
+        <body
+          className="min-h-full flex flex-col bg-neutral-900 text-neutral-100"
+          suppressHydrationWarning
+        >
           <AuthRedirectHandler />
           {children}
         </body>

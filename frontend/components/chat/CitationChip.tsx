@@ -53,8 +53,9 @@ export function CitationList({ sources }: CitationListProps) {
     <div className="mt-3 border-t border-neutral-800 pt-3">
       <p className="mb-2 text-xs font-medium text-neutral-500">Sources</p>
       <div className="flex flex-wrap gap-2">
-        {sources.map((source) => (
-          <CitationChip key={source.document} source={source} />
+        {/* One document can be cited several times with different excerpts. */}
+        {sources.map((source, index) => (
+          <CitationChip key={`${source.document}-${index}`} source={source} />
         ))}
       </div>
     </div>

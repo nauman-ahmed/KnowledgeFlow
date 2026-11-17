@@ -1,5 +1,5 @@
 import json
-from collections.abc import AsyncIterator
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any
 
@@ -89,15 +89,16 @@ def _initial_agent_state(query: str, history: list[dict[str, str]]) -> AgentStat
     }
 
 
-def run_agent_pipeline(
+def stream_agent_pipeline(
     db: Session,
     query: str,
     history: list[dict[str, str]],
-) -> tuple[AgentState, list[dict[str, Any]]]:
+) -> Iterator[tuple[str, dict[str, Any]]]:
+    """Run the agent graph, yielding ("step", event) as each node finishes,
+    then ("final", state) once the graph completes."""
     graph = build_agent_graph()
     initial = _initial_agent_state(query, history)
     final_state: dict[str, Any] = dict(initial)
-    step_events: list[dict[str, Any]] = []
 
     for event in graph.stream(
         initial,
@@ -106,22 +107,26 @@ def run_agent_pipeline(
     ):
         for node_name, update in event.items():
             final_state.update(update)
-            step_events.append(
+            yield (
+                "step",
                 {
                     "phase": node_name,
                     "message": STEP_MESSAGES.get(node_name, node_name),
-                }
+                },
             )
 
-    return final_state, step_events  # type: ignore[return-value]
+    yield "final", final_state
 
 
-async def chat_stream(
+# Sync generator on purpose: the agent, LLM and DB calls are all blocking, so
+# Starlette must iterate this in its threadpool. An `async def` here would run
+# them on the event loop, stalling every request and buffering the whole stream.
+def chat_stream(
     db: Session,
     user_id: str,
     message: str,
     conversation_id: str | None,
-) -> AsyncIterator[str]:
+) -> Iterator[str]:
     try:
         message = validate_user_message(message)
     except GuardrailError as exc:
@@ -159,9 +164,16 @@ async def chat_stream(
             input={"message": message},
             metadata={"conversation_id": conversation.id},
         ) as trace:
-            final_state, step_events = run_agent_pipeline(db, message, history)
+            # Sent before the first LLM call so the client gets headers and a
+            # status line immediately instead of waiting on the planner.
+            yield format_sse("step", {"phase": "start", "message": "Thinking…"})
 
-            for step in step_events:
+            final_state: dict[str, Any] = {}
+            for kind, payload in stream_agent_pipeline(db, message, history):
+                if kind == "final":
+                    final_state = payload
+                    continue
+                step = payload
                 yield format_sse("step", step)
                 if hasattr(trace, "span"):
                     span = trace.span(

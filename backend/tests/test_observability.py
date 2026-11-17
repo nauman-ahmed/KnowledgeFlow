@@ -26,15 +26,14 @@ def test_chat_uses_tracer(mock_get_tracer) -> None:
     mock_tracer.trace.return_value.__exit__ = MagicMock(return_value=False)
     mock_get_tracer.return_value = mock_tracer
 
-    with patch("app.services.chat_service.run_agent_pipeline") as mock_pipeline, patch(
+    with patch("app.services.chat_service.stream_agent_pipeline") as mock_pipeline, patch(
         "app.services.chat_service.generate_structured_answer"
     ) as mock_structured, patch("app.services.chat_service.get_openai_client"):
         from app.schemas.chat import SourceCitation
         from app.schemas.structured import StructuredAnswerResponse
 
-        mock_pipeline.return_value = (
-            {"answer_messages": [], "retrieved_chunks": [], "steps": []},
-            [],
+        mock_pipeline.return_value = iter(
+            [("final", {"answer_messages": [], "retrieved_chunks": [], "steps": []})]
         )
         mock_structured.return_value = StructuredAnswerResponse(
             summary="Test",
