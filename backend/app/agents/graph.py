@@ -25,6 +25,20 @@ def _parse_planner_json(raw: str) -> dict:
     return json.loads(text)
 
 
+def _format_recent_history(
+    history: list[dict[str, str]], max_messages: int = 4, max_chars: int = 300
+) -> str:
+    if not history:
+        return ""
+    lines = []
+    for msg in history[-max_messages:]:
+        content = msg.get("content", "").strip()
+        if len(content) > max_chars:
+            content = content[:max_chars].rstrip() + "…"
+        lines.append(f"{msg.get('role', 'user')}: {content}")
+    return "\nConversation so far (most recent last):\n" + "\n".join(lines) + "\n"
+
+
 def planner_node(state: AgentState, config: RunnableConfig) -> dict:
     settings = get_settings()
     client = get_openai_client()
@@ -34,9 +48,11 @@ def planner_node(state: AgentState, config: RunnableConfig) -> dict:
         "You are a planning agent for a knowledge library assistant.\n"
         "Return ONLY valid JSON with keys:\n"
         '- "plan": one sentence strategy\n'
-        '- "search_queries": 1-3 search strings for semantic retrieval\n'
+        '- "search_queries": 1-3 standalone search strings for semantic retrieval '
+        "(resolve pronouns and follow-ups using the conversation so far)\n"
         '- "list_library": boolean, true if user asks what documents exist\n'
         '- "run_summarize": boolean, true if a summary of sources would help\n'
+        f"{_format_recent_history(state.get('history') or [])}"
         f"\nUser question: {query}"
     )
 
@@ -129,7 +145,11 @@ def answer_generator_node(state: AgentState, config: RunnableConfig) -> dict:
     context = _build_context(state)
     system_message = f"{SYSTEM_PROMPT}\n\n## Retrieved context\n\n{context}"
     history = state.get("history") or []
-    answer_messages = [{"role": "system", "content": system_message}, *history]
+    answer_messages = [
+        {"role": "system", "content": system_message},
+        *history,
+        {"role": "user", "content": state["query"]},
+    ]
     return {
         "answer_messages": answer_messages,
         "steps": [{"phase": "answer_generator", "detail": "Answer context prepared"}],

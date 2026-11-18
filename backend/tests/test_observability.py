@@ -46,3 +46,29 @@ def test_chat_uses_tracer(mock_get_tracer) -> None:
         response = client.post("/api/v1/chat", json={"message": "Hello"})
         assert response.status_code == 200
         mock_tracer.trace.assert_called_once()
+
+
+@patch("app.core.observability.get_settings")
+def test_child_spans_are_parented_explicitly_to_root(mock_settings) -> None:
+    """Regression: children used the client + OTel current context, which is lost
+    when the streaming generator resumes on another threadpool worker, so every
+    step became its own trace in Langfuse."""
+    mock_settings.return_value.langfuse_public_key = "pk"
+    mock_settings.return_value.langfuse_secret_key = "sk"
+    mock_settings.return_value.langfuse_host = "https://cloud.langfuse.com"
+
+    mock_client = MagicMock()
+    root = mock_client.start_observation.return_value
+
+    with patch("langfuse.Langfuse", return_value=mock_client):
+        tracer = LangfuseTracer()
+
+    with tracer.trace("chat", user_id="u1", session_id="s1") as trace:
+        trace.span(name="planner", metadata={"message": "Planning"})
+
+    mock_client.start_observation.assert_called_once()  # only the root
+    root.start_observation.assert_called_once_with(
+        name="planner", metadata={"message": "Planning"}, as_type="span"
+    )
+    mock_client.start_as_current_observation.assert_not_called()
+    root.end.assert_called_once()

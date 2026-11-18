@@ -30,11 +30,18 @@ class _NoOpTrace:
 
 
 class _LangfuseTraceWrapper:
-    """Adapter for Langfuse SDK v3+/v4 observation API."""
+    """Adapter for Langfuse SDK v3+/v4 observation API.
 
-    def __init__(self, client: Any, root_span: Any) -> None:
+    Children are created from the root span explicitly instead of relying on
+    OpenTelemetry's "current span" context. The chat stream is a generator that
+    Starlette advances on different threadpool workers, each in a fresh
+    context, so context-based parenting would orphan every child span.
+    """
+
+    def __init__(self, client: Any, root_span: Any, attributes: dict[str, Any]) -> None:
         self._client = client
         self._root_span = root_span
+        self._attributes = attributes
 
     def span(
         self,
@@ -43,11 +50,15 @@ class _LangfuseTraceWrapper:
         metadata: dict[str, Any] | None = None,
         as_type: ObservationType = "span",
     ) -> Any:
-        return self._client.start_observation(
-            name=name,
-            metadata=metadata,
-            as_type=as_type,
-        )
+        from langfuse import propagate_attributes
+
+        # Entered and exited within this call, so it never spans a yield.
+        with propagate_attributes(**self._attributes):
+            return self._root_span.start_observation(
+                name=name,
+                metadata=metadata,
+                as_type=as_type,
+            )
 
     def update(self, **kwargs: Any) -> None:
         self._root_span.update(**kwargs)
@@ -85,21 +96,22 @@ class LangfuseTracer:
             yield _NoOpTrace()
             return
 
-        with self._client.start_as_current_observation(
-            name=name,
-            as_type="span",
-            input=input,
-        ) as root_span:
-            from langfuse import propagate_attributes
+        from langfuse import propagate_attributes
 
-            with propagate_attributes(
-                user_id=user_id,
-                session_id=session_id,
-                metadata=metadata,
-            ):
-                yield _LangfuseTraceWrapper(self._client, root_span)
+        attributes = {"user_id": user_id, "session_id": session_id, "metadata": metadata}
+        # Not start_as_current_observation: that attaches OTel context on one
+        # thread and detaches it on another when used across generator yields.
+        with propagate_attributes(**attributes):
+            root_span = self._client.start_observation(name=name, as_type="span", input=input)
 
-        self._client.flush()
+        try:
+            yield _LangfuseTraceWrapper(self._client, root_span, attributes)
+        except BaseException as exc:
+            root_span.update(level="ERROR", status_message=str(exc) or type(exc).__name__)
+            raise
+        finally:
+            root_span.end()
+            self._client.flush()
 
     def flush(self) -> None:
         if self._client is not None:
