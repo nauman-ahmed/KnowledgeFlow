@@ -31,6 +31,8 @@ class Settings(BaseSettings):
 
     app_name: str = "KnowledgeFlow API"
     debug: bool = False
+    # Swagger UI / OpenAPI schema. On locally; render.yaml turns it off.
+    enable_api_docs: bool = True
 
     database_url: str = (
         "postgresql+psycopg://knowledgeflow:knowledgeflow@localhost:5433/knowledgeflow"

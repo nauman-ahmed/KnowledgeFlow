@@ -1,6 +1,15 @@
 import { apiFetch } from "./client";
 import type { ChatMessage, ConversationPreview, StructuredOutput } from "@/lib/types/chat";
 
+/** Fired on window when a chat turn finishes, so the sidebar can refetch. */
+export const CONVERSATIONS_CHANGED_EVENT = "knowledgeflow:conversations-changed";
+
+export function notifyConversationsChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(CONVERSATIONS_CHANGED_EVENT));
+  }
+}
+
 type ConversationSummaryDto = {
   id: string;
   title: string;

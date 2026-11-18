@@ -17,7 +17,19 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+def api_docs_urls(enabled: bool) -> dict[str, str | None]:
+    """Swagger UI, ReDoc and the OpenAPI schema, or none of them."""
+    if enabled:
+        return {"docs_url": "/docs", "redoc_url": "/redoc", "openapi_url": "/openapi.json"}
+    return {"docs_url": None, "redoc_url": None, "openapi_url": None}
+
+
+app = FastAPI(
+    title=settings.app_name,
+    version="0.1.0",
+    lifespan=lifespan,
+    **api_docs_urls(settings.enable_api_docs),
+)
 
 app.add_middleware(
     CORSMiddleware,

@@ -17,6 +17,9 @@ STRUCTURED_INSTRUCTION = (
     '  "confidence": "high" | "medium" | "low"\n'
     "}\n"
     "Use only sources supported by the retrieved context. "
+    "Cite a document only if your answer actually uses it. "
+    "If the retrieved context does not contain the answer, say so in the summary, "
+    'set "confidence" to "low" and return "sources": []. '
     "Do not wrap JSON in markdown fences."
 )
 
@@ -34,6 +37,10 @@ def _merge_sources(
     fallback_sources: list[SourceCitation],
 ) -> StructuredAnswerResponse:
     if parsed.sources:
+        return parsed
+    # A low-confidence answer is usually "the library doesn't cover this";
+    # citing every retrieved chunk there would claim support that isn't real.
+    if parsed.confidence == "low":
         return parsed
     return parsed.model_copy(update={"sources": fallback_sources})
 

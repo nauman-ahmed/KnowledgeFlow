@@ -1,7 +1,7 @@
 import pytest
 
 from app.guardrails.input import GuardrailError, sanitize_text, validate_user_message
-from app.guardrails.output import _parse_json_response
+from app.guardrails.output import _merge_sources, _parse_json_response
 from app.schemas.chat import SourceCitation
 from app.schemas.structured import StructuredAnswerResponse
 
@@ -41,3 +41,26 @@ def test_structured_answer_requires_confidence_level() -> None:
             sources=[SourceCitation(document="a.txt", excerpt="excerpt")],
             confidence="invalid",
         )
+
+
+_FALLBACK = [
+    SourceCitation(document="a.txt", excerpt="x"),
+    SourceCitation(document="b.txt", excerpt="y"),
+]
+
+
+def test_low_confidence_answer_gets_no_fallback_sources() -> None:
+    """Regression: "the library doesn't cover this" replies listed every retrieved doc."""
+    parsed = StructuredAnswerResponse(summary="Not in the library.", confidence="low")
+    assert _merge_sources(parsed, _FALLBACK).sources == []
+
+
+def test_confident_answer_without_sources_gets_fallback() -> None:
+    parsed = StructuredAnswerResponse(summary="Answer.", confidence="high")
+    assert _merge_sources(parsed, _FALLBACK).sources == _FALLBACK
+
+
+def test_model_sources_are_kept() -> None:
+    own = [SourceCitation(document="c.txt", excerpt="z")]
+    parsed = StructuredAnswerResponse(summary="Answer.", confidence="medium", sources=own)
+    assert _merge_sources(parsed, _FALLBACK).sources == own

@@ -215,7 +215,8 @@ def chat_stream(
             for token in stream_summary_text(structured.summary):
                 yield format_sse("token", {"content": token})
 
-            sources = structured.sources or fallback_sources
+            # generate_structured_answer already applied the fallback rules.
+            sources = structured.sources
             structured_payload = structured.model_dump()
 
             assistant_msg = Message(

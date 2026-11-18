@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { streamChat } from "@/lib/api/chat";
-import { fetchConversation } from "@/lib/api/conversations";
+import { fetchConversation, notifyConversationsChanged } from "@/lib/api/conversations";
 import { useApiAuth } from "@/lib/api/use-api-auth";
 import { SUGGESTED_PROMPTS, type ChatMessage } from "@/lib/types/chat";
 import { AgentStepIndicator } from "./AgentStepIndicator";
@@ -126,6 +126,8 @@ export function ChatView({ conversationId, initialMessages = [] }: ChatViewProps
                     : m,
                 ),
               );
+              // New chats need to appear in the sidebar; existing ones move to the top.
+              notifyConversationsChanged();
               if (!conversationId) {
                 router.replace(`/chat/${payload.conversation_id}`);
               }

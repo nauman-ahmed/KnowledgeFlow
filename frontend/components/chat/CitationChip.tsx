@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText } from "lucide-react";
 import type { SourceCitation } from "@/lib/types/chat";
 import { cn } from "@/lib/utils";
@@ -9,14 +9,58 @@ type CitationChipProps = {
   source: SourceCitation;
 };
 
+/** Roughly the popover's height (w-72, max-h-60 + padding). */
+const POPOVER_SPACE_PX = 260;
+
+/** Bottom edge of the nearest scrolling ancestor, which clips the popover. */
+function clipBottom(el: HTMLElement): number {
+  let node = el.parentElement;
+  while (node) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === "auto" || overflowY === "scroll" || overflowY === "hidden") {
+      return node.getBoundingClientRect().bottom;
+    }
+    node = node.parentElement;
+  }
+  return window.innerHeight;
+}
+
 export function CitationChip({ source }: CitationChipProps) {
   const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  function toggle() {
+    const root = rootRef.current;
+    if (!open && root) {
+      // Near the bottom of the chat the popover would be cut off; open it upwards.
+      setOpenUp(clipBottom(root) - root.getBoundingClientRect().bottom < POPOVER_SPACE_PX);
+    }
+    setOpen((v) => !v);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   return (
-    <div className="relative inline-block">
+    <div ref={rootRef} className="relative inline-block">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        onClick={toggle}
         className={cn(
           "inline-flex items-center gap-1 rounded-full border border-neutral-700",
           "bg-neutral-800/80 px-2.5 py-1 text-xs text-neutral-300",
@@ -30,8 +74,9 @@ export function CitationChip({ source }: CitationChipProps) {
       {open && (
         <div
           className={cn(
-            "absolute left-0 top-full z-10 mt-1 w-72 rounded-lg border border-neutral-700",
+            "absolute left-0 z-10 max-h-60 w-72 overflow-y-auto rounded-lg border border-neutral-700",
             "bg-neutral-900 p-3 text-xs leading-relaxed text-neutral-300 shadow-lg",
+            openUp ? "bottom-full mb-1" : "top-full mt-1",
           )}
         >
           <p className="mb-1 font-medium text-neutral-200">{source.document}</p>

@@ -46,6 +46,8 @@ services:
         value: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
       - key: LLM_CHAT_MODEL
         value: qwen3.6-35b-a3b
+      - key: ENABLE_API_DOCS
+        value: "false"
       - key: LANGFUSE_PUBLIC_KEY
         sync: false
       - key: LANGFUSE_SECRET_KEY

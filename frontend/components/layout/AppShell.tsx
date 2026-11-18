@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { fetchConversations } from "@/lib/api/conversations";
+import { CONVERSATIONS_CHANGED_EVENT, fetchConversations } from "@/lib/api/conversations";
 import { useApiAuth } from "@/lib/api/use-api-auth";
 import type { ConversationPreview } from "@/lib/types/chat";
 import { MobileDrawer } from "./MobileDrawer";
@@ -55,7 +55,11 @@ export function AppShell({ children }: AppShellProps) {
       void loadConversations();
     };
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    window.addEventListener(CONVERSATIONS_CHANGED_EVENT, onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener(CONVERSATIONS_CHANGED_EVENT, onFocus);
+    };
   }, [isAuthReady, loadConversations]);
 
   return (
