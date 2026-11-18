@@ -1,16 +1,41 @@
+# Render Blueprint: Postgres (pgvector) + Key Value (Redis) + FastAPI API.
+# Deploy: Render Dashboard → New → Blueprint → pick this repo.
+# Values marked `sync: false` are prompted for once in the dashboard.
+
+databases:
+  - name: knowledgeflow-db
+    plan: free
+    region: frankfurt
+    databaseName: knowledgeflow
+    user: knowledgeflow
+    postgresMajorVersion: "16"
+
 services:
+  - type: keyvalue
+    name: knowledgeflow-redis
+    plan: free
+    region: frankfurt
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # internal only: reachable from the API, not the internet
+
   - type: web
     name: knowledgeflow-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: .
     plan: free
+    region: frankfurt
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: knowledgeflow-db
+          property: connectionString
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: keyvalue
+          name: knowledgeflow-redis
+          property: connectionString
       - key: CLERK_SECRET_KEY
         sync: false
       - key: CLERK_PUBLISHABLE_KEY
@@ -19,6 +44,8 @@ services:
         sync: false
       - key: OPENAI_BASE_URL
         value: https://dashscope-intl.aliyuncs.com/compatible-mode/v1
+      - key: LLM_CHAT_MODEL
+        value: qwen3.6-35b-a3b
       - key: LANGFUSE_PUBLIC_KEY
         sync: false
       - key: LANGFUSE_SECRET_KEY
@@ -26,4 +53,4 @@ services:
       - key: LANGFUSE_BASE_URL
         value: https://cloud.langfuse.com
       - key: CORS_ORIGINS
-        sync: false
+        sync: false # the Vercel URL, e.g. https://knowledgeflow.vercel.app

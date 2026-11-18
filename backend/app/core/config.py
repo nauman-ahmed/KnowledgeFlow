@@ -2,7 +2,7 @@ import base64
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -36,6 +36,16 @@ class Settings(BaseSettings):
         "postgresql+psycopg://knowledgeflow:knowledgeflow@localhost:5433/knowledgeflow"
     )
     redis_url: str = "redis://localhost:6379/0"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg3_driver(cls, value: str) -> str:
+        # Hosted Postgres (Render, Neon, Heroku) hands out postgres:// or
+        # postgresql:// URLs, which SQLAlchemy maps to psycopg2 — not installed.
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix) :]
+        return value
 
     # Clerk (M1+)
     clerk_secret_key: str | None = None
